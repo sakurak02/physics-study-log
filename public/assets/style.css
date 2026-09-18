@@ -41,3 +41,5 @@ header nav [aria-current]{border-bottom-color:#999}
 
 @media(max-width:960px) and (min-width:821px){.hero{padding-inline:10px}.hero-content{grid-template-columns:max-content 260px;gap:38px}.hero-description p{font-size:14px}.hero-kumo img{width:158px;max-width:158px}.hero-kumo p{font-size:11px}}
 @media(max-width:820px){.hero{display:block;margin:0;padding:36px 0 42px}.hero-title h1{font-size:clamp(31px,9.2vw,38px);line-height:1.5;letter-spacing:.025em;white-space:normal}.hero-content{display:block;margin:31px 0 0}.hero-description{width:max-content;max-width:100%;margin-inline:auto}.hero-description p{font-size:14px;line-height:2;letter-spacing:0}.hero-line{display:block;white-space:normal}.hero-kumo{display:flex;position:static;align-items:center;justify-self:auto;margin:34px auto 0;padding:0;pointer-events:auto}.hero-kumo img{width:124px;max-width:124px;height:auto;margin:0}.hero-kumo p{position:static;width:100%;margin:15px 0 0;transform:none;font-size:11px;line-height:1.9;letter-spacing:.035em;text-align:center;white-space:nowrap}}
+
+.brand:hover{text-decoration:none}

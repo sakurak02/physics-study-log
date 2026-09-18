@@ -60,6 +60,13 @@ test('Google Analytics is included once on every generated page', async () => {
     assert.equal((html.match(/gtag\('config','G-JQXS3747F9'\)/g) || []).length, 1, file);
   }
 });
+test('the shared brand links every page to the some clouds home', async () => {
+  const htmlFiles = (await fs.readdir(out, { recursive: true })).filter(f => f.endsWith('.html'));
+  for (const file of htmlFiles) {
+    const html = await fs.readFile(path.join(out, file), 'utf8');
+    assert.equal((html.match(/<a class="brand" href="https:\/\/sakurak02\.github\.io\/some-clouds\/">/g) || []).length, 1, file);
+  }
+});
 test('sitemap contains every public page at the GitHub Pages URL', async () => {
   const sitemap = await fs.readFile(path.join(out, 'sitemap.xml'), 'utf8');
   const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
