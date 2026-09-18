@@ -60,6 +60,18 @@ test('Google Analytics is included once on every generated page', async () => {
     assert.equal((html.match(/gtag\('config','G-JQXS3747F9'\)/g) || []).length, 1, file);
   }
 });
+test('sitemap contains every public page at the GitHub Pages URL', async () => {
+  const sitemap = await fs.readFile(path.join(out, 'sitemap.xml'), 'utf8');
+  const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
+  const expected = [
+    'https://sakurak02.github.io/physics-study-log/',
+    ...['mechanics', 'thermodynamics', 'waves', 'atomic', 'electromagnetism'].map(field => `https://sakurak02.github.io/physics-study-log/${field}/`),
+    ...chapters.map(chapter => `https://sakurak02.github.io/physics-study-log/${chapter.url}`),
+    ...chapters.flatMap(chapter => chapter.cores.map(core => `https://sakurak02.github.io/physics-study-log/${core.url}`))
+  ];
+  assert.deepEqual(locations, expected);
+  assert.equal(new Set(locations).size, expected.length);
+});
 test('missing files, partial data, and multiple numbered images', async () => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'physics-test-'));
   try {

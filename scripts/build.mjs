@@ -6,6 +6,7 @@ import { fields, chapters, pad } from '../data/curriculum.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const out = path.join(root, 'dist');
+const siteUrl = 'https://sakurak02.github.io/physics-study-log/';
 const md = new MarkdownIt({ html: false, linkify: false });
 md.block.ruler.before('heading', 'math_block', (state, start, end, silent) => {
   const line = n => state.src.slice(state.bMarks[n] + state.tShift[n], state.eMarks[n]).trim();
@@ -107,6 +108,14 @@ async function build() {
     const empty = '<p class="empty">未学習 — 記録はこれから。</p>';
     await page(core.url, `CORE ${pad(core.number)}｜${core.name}`, `${crumb([[chapter.field.name, chapter.field.slug + '/'], ['Chapter ' + chapter.number, chapter.url], ['CORE ' + pad(core.number)]])}<div class="page-heading"><p class="eyebrow">Chapter ${chapter.number}｜${chapter.name}</p><h1><small>CORE ${pad(core.number)}</small>${core.name}</h1>${status(core)}</div><nav class="section-nav" aria-label="ページ内"><a href="#question">QUESTION</a><a href="#log">LOG</a><a href="#session">SESSION</a></nav><article class="entry"><section id="question"><h2 class="section-title">01 <span>QUESTION</span><small>オリジナル問題</small></h2><div class="prose">${content.question ? md.render(content.question) : empty}</div></section><section id="log"><h2 class="section-title">02 <span>LOG</span><small>解いた記録・気づき</small></h2>${content.images.map((file, n) => `<figure><a href="log/${file}" aria-label="学習ノート ${n + 1}を原寸で開く"><img src="log/${file}" alt="CORE ${pad(core.number)} ${esc(core.name)}の手書き学習ノート ${n + 1}" loading="lazy"></a><figcaption>LOG ${pad(n + 1)} · 画像を選ぶと原寸で表示</figcaption></figure>`).join('')}${content.notes ? `<div class="prose">${md.render(content.notes)}</div>` : ''}${!content.images.length && !content.notes ? empty : ''}</section><section id="session"><h2 class="section-title">03 <span>SESSION</span><small>クーモと振り返る</small></h2><div class="prose">${content.session ? md.render(content.session) : empty}</div></section></article><nav class="next-prev" aria-label="前後のCORE">${i > 0 ? `<a href="@/${cores[i - 1].url}">← CORE ${pad(cores[i - 1].number)}<br>${cores[i - 1].name}</a>` : '<span></span>'}${i < cores.length - 1 ? `<a href="@/${cores[i + 1].url}">CORE ${pad(cores[i + 1].number)} →<br>${cores[i + 1].name}</a>` : ''}</nav>`);
   }
+  const sitemapPaths = [
+    '',
+    ...fields.map(field => `${field.slug}/`),
+    ...chapters.map(chapter => chapter.url),
+    ...cores.map(core => core.url)
+  ];
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapPaths.map(url => `  <url><loc>${siteUrl}${url}</loc></url>`).join('\n')}\n</urlset>\n`;
+  await fs.writeFile(path.join(out, 'sitemap.xml'), sitemap);
   await fs.writeFile(path.join(out, '.nojekyll'), '');
   console.log(`Built ${fields.length} fields, ${chapters.length} chapters, ${cores.length} CORE pages.`);
 }
