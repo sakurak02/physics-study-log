@@ -51,6 +51,15 @@ test('every internal link and asset resolves at root and under a Pages repositor
     }
   }
 });
+test('Google Analytics is included once on every generated page', async () => {
+  const htmlFiles = (await fs.readdir(out, { recursive: true })).filter(f => f.endsWith('.html'));
+  assert.ok(htmlFiles.length > 0);
+  for (const file of htmlFiles) {
+    const html = await fs.readFile(path.join(out, file), 'utf8');
+    assert.equal((html.match(/googletagmanager\.com\/gtag\/js\?id=G-JQXS3747F9/g) || []).length, 1, file);
+    assert.equal((html.match(/gtag\('config','G-JQXS3747F9'\)/g) || []).length, 1, file);
+  }
+});
 test('missing files, partial data, and multiple numbered images', async () => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'physics-test-'));
   try {
