@@ -1,0 +1,7 @@
+{
+  "name": "physics-study-log",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node scripts/build.mjs", "test": "node --test", "preview": "node scripts/preview.mjs" },
+  "dependencies": { "katex": "0.16.22", "markdown-it": "14.1.0" }
+}
