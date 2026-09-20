@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { chapters } from '../data/curriculum.mjs';
-import { readContent } from '../scripts/build.mjs';
+import { readContent, renderCoreArticle } from '../scripts/build.mjs';
 const out = path.resolve('dist');
 test('43 CORE across 23 chapters, including empty shelves', async () => {
   assert.equal(chapters.length, 23);
@@ -25,6 +25,32 @@ test('sample math, image, and progress are rendered', async () => {
   assert.match(html, /log\/log-01.webp/);
   assert.doesNotMatch(html, /\$\$|katex-error/);
   assert.match(await fs.readFile(path.join(out, 'index.html'), 'utf8'), /1 \/ 32/);
+});
+test('optional ANSWER is collapsed, rendered with math, and placed before LOG and SESSION', async () => {
+  const content = {
+    question: '# Question',
+    answer: '## MODEL ANSWER\n\n$E=mc^2$',
+    notes: '',
+    images: [],
+    session: '# Session'
+  };
+  const html = renderCoreArticle({ number: 2, name: '加速度' }, content);
+  assert.ok(html.indexOf('href="#question"') < html.indexOf('href="#answer"'));
+  assert.ok(html.indexOf('id="question"') < html.indexOf('id="answer"'));
+  assert.ok(html.indexOf('id="answer"') < html.indexOf('id="log"'));
+  assert.ok(html.indexOf('id="log"') < html.indexOf('id="session"'));
+  assert.match(html, /02 <span>ANSWER<\/span>/);
+  assert.match(html, /03 <span>LOG<\/span>/);
+  assert.match(html, /04 <span>SESSION<\/span>/);
+  assert.match(html, /<details class="answer-details"><summary>ANSWERを開く<\/summary>/);
+  assert.doesNotMatch(html, /<details class="answer-details" open/);
+  assert.match(html, /class="katex"/);
+});
+test('articles without answer.md keep the existing three-section flow', () => {
+  const html = renderCoreArticle({ number: 2, name: '加速度' }, { question: '', answer: '', notes: '', images: [], session: '' });
+  assert.doesNotMatch(html, /href="#answer"|id="answer"|ANSWERを開く/);
+  assert.match(html, /02 <span>LOG<\/span>/);
+  assert.match(html, /03 <span>SESSION<\/span>/);
 });
 test('top hero has the simplified layout while inner navigation remains', async () => {
   const home = await fs.readFile(path.join(out, 'index.html'), 'utf8');
@@ -85,6 +111,10 @@ test('missing files, partial data, and multiple numbered images', async () => {
     assert.equal((await readContent(temp)).status, '未学習');
     await fs.writeFile(path.join(temp, 'question.md'), '# Question');
     assert.equal((await readContent(temp)).status, '学習中');
+    await fs.writeFile(path.join(temp, 'answer.md'), '# Answer');
+    const answered = await readContent(temp);
+    assert.equal(answered.answer, '# Answer');
+    assert.equal(answered.status, '学習中');
     await fs.mkdir(path.join(temp, 'log'));
     for (const name of ['log-10.webp', 'log-02.webp', 'log-01.webp', 'other.webp']) await fs.writeFile(path.join(temp, 'log', name), '');
     await fs.writeFile(path.join(temp, 'session.md'), '# Session');

@@ -55,17 +55,28 @@ async function optional(file) {
 }
 export async function readContent(directory) {
   const question = await optional(path.join(directory, 'question.md'));
+  const answer = await optional(path.join(directory, 'answer.md'));
   const session = await optional(path.join(directory, 'session.md'));
   const notes = await optional(path.join(directory, 'log', 'index.md'));
   let images = [];
   try { images = (await fs.readdir(path.join(directory, 'log'))).filter(f => /^log-\d+\.(webp|png|jpe?g)$/i.test(f)).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0])); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
-  const status = question && session && images.length ? '完了' : question || session || images.length || notes ? '学習中' : '未学習';
-  return { question, session, notes, images, status };
+  const status = question && session && images.length ? '完了' : question || answer || session || images.length || notes ? '学習中' : '未学習';
+  return { question, answer, session, notes, images, status };
 }
 const cores = chapters.flatMap(chapter => chapter.cores.map(core => ({ ...core, chapter })));
 const cloud = '<svg viewBox="0 0 64 44" fill="none" aria-hidden="true"><path d="M17 36C1 37 2 15 17 16C16 0 43 0 45 16C62 12 67 36 49 36Z" stroke="currentColor" stroke-width="3"/></svg>';
 const status = core => `<span class="status ${core.content.status === '完了' ? 'complete' : ''}">${core.content.status}</span>`;
+
+export function renderCoreArticle(core, content) {
+  const empty = '<p class="empty">未学習 — 記録はこれから。</p>';
+  const hasAnswer = Boolean(content.answer);
+  const answerNav = hasAnswer ? '<a href="#answer">ANSWER</a>' : '';
+  const answerSection = hasAnswer ? `<section id="answer"><h2 class="section-title">02 <span>ANSWER</span><small>解答・解説</small></h2><details class="answer-details"><summary>ANSWERを開く</summary><div class="prose">${md.render(content.answer)}</div></details></section>` : '';
+  const logNumber = hasAnswer ? '03' : '02';
+  const sessionNumber = hasAnswer ? '04' : '03';
+  return `<nav class="section-nav" aria-label="ページ内"><a href="#question">QUESTION</a>${answerNav}<a href="#log">LOG</a><a href="#session">SESSION</a></nav><article class="entry"><section id="question"><h2 class="section-title">01 <span>QUESTION</span><small>オリジナル問題</small></h2><div class="prose">${content.question ? md.render(content.question) : empty}</div></section>${answerSection}<section id="log"><h2 class="section-title">${logNumber} <span>LOG</span><small>解いた記録・気づき</small></h2>${content.images.map((file, n) => `<figure><a href="log/${file}" aria-label="学習ノート ${n + 1}を原寸で開く"><img src="log/${file}" alt="CORE ${pad(core.number)} ${esc(core.name)}の手書き学習ノート ${n + 1}" loading="lazy"></a><figcaption>LOG ${pad(n + 1)} · 画像を選ぶと原寸で表示</figcaption></figure>`).join('')}${content.notes ? `<div class="prose">${md.render(content.notes)}</div>` : ''}${!content.images.length && !content.notes ? empty : ''}</section><section id="session"><h2 class="section-title">${sessionNumber} <span>SESSION</span><small>クーモと振り返る</small></h2><div class="prose">${content.session ? md.render(content.session) : empty}</div></section></article>`;
+}
 
 async function build() {
   // dist is generated output only; never remove content or another directory.
@@ -105,8 +116,7 @@ async function build() {
     const dest = path.join(out, core.url, 'log');
     await fs.mkdir(dest, { recursive: true });
     for (const image of content.images) await fs.copyFile(path.join(root, 'content', core.url, 'log', image), path.join(dest, image));
-    const empty = '<p class="empty">未学習 — 記録はこれから。</p>';
-    await page(core.url, `CORE ${pad(core.number)}｜${core.name}`, `${crumb([[chapter.field.name, chapter.field.slug + '/'], ['Chapter ' + chapter.number, chapter.url], ['CORE ' + pad(core.number)]])}<div class="page-heading"><p class="eyebrow">Chapter ${chapter.number}｜${chapter.name}</p><h1><small>CORE ${pad(core.number)}</small>${core.name}</h1>${status(core)}</div><nav class="section-nav" aria-label="ページ内"><a href="#question">QUESTION</a><a href="#log">LOG</a><a href="#session">SESSION</a></nav><article class="entry"><section id="question"><h2 class="section-title">01 <span>QUESTION</span><small>オリジナル問題</small></h2><div class="prose">${content.question ? md.render(content.question) : empty}</div></section><section id="log"><h2 class="section-title">02 <span>LOG</span><small>解いた記録・気づき</small></h2>${content.images.map((file, n) => `<figure><a href="log/${file}" aria-label="学習ノート ${n + 1}を原寸で開く"><img src="log/${file}" alt="CORE ${pad(core.number)} ${esc(core.name)}の手書き学習ノート ${n + 1}" loading="lazy"></a><figcaption>LOG ${pad(n + 1)} · 画像を選ぶと原寸で表示</figcaption></figure>`).join('')}${content.notes ? `<div class="prose">${md.render(content.notes)}</div>` : ''}${!content.images.length && !content.notes ? empty : ''}</section><section id="session"><h2 class="section-title">03 <span>SESSION</span><small>クーモと振り返る</small></h2><div class="prose">${content.session ? md.render(content.session) : empty}</div></section></article><nav class="next-prev" aria-label="前後のCORE">${i > 0 ? `<a href="@/${cores[i - 1].url}">← CORE ${pad(cores[i - 1].number)}<br>${cores[i - 1].name}</a>` : '<span></span>'}${i < cores.length - 1 ? `<a href="@/${cores[i + 1].url}">CORE ${pad(cores[i + 1].number)} →<br>${cores[i + 1].name}</a>` : ''}</nav>`);
+    await page(core.url, `CORE ${pad(core.number)}｜${core.name}`, `${crumb([[chapter.field.name, chapter.field.slug + '/'], ['Chapter ' + chapter.number, chapter.url], ['CORE ' + pad(core.number)]])}<div class="page-heading"><p class="eyebrow">Chapter ${chapter.number}｜${chapter.name}</p><h1><small>CORE ${pad(core.number)}</small>${core.name}</h1>${status(core)}</div>${renderCoreArticle(core, content)}<nav class="next-prev" aria-label="前後のCORE">${i > 0 ? `<a href="@/${cores[i - 1].url}">← CORE ${pad(cores[i - 1].number)}<br>${cores[i - 1].name}</a>` : '<span></span>'}${i < cores.length - 1 ? `<a href="@/${cores[i + 1].url}">CORE ${pad(cores[i + 1].number)} →<br>${cores[i + 1].name}</a>` : ''}</nav>`);
   }
   const sitemapPaths = [
     '',
