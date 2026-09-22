@@ -1,41 +1,45 @@
 # クーモと学ぶ｜物理学習ログ
 
-高校物理を体系順に記録する静的サイトです。5分野・23 Chapter・43 COREの棚を用意しています。ブラウザでのJavaScriptや外部CDNは不要です。Markdown・数式はビルド時にHTML化し、KaTeXのCSS・フォントも同梱します。
+高校物理を体系順に記録する静的サイトです。教材目次を `category → chapter → core` の骨組みとして保持し、各テーマから生まれた公開用オリジナル問題を `unit` として追加します。ブラウザ側のJavaScriptや外部CDNは不要で、Markdown・数式はビルド時にHTML化します。
 
-## 構成
+## 公開コンテンツ構造
 
 ```text
-data/curriculum.mjs          分野・Chapter・COREの一覧
+data/curriculum.mjs                 カテゴリ・Chapter・COREの表示名
 content/
-  mechanics/chapter-01/core-01/
-    question.md             公開用オリジナル問題
-    session.md              解説・振り返り
-    log/
-      log-01.webp           手書きノート
-      index.md              気づき・理解したこと（任意）
-public/assets/              スタイル・正式なクーモ画像
-scripts/build.mjs           静的ページ生成
-scripts/preview.mjs         ローカル確認用サーバー
-test/site.test.mjs          構造・リンク・欠損データの確認
-.github/workflows/pages.yml GitHub Pagesへの自動公開
-dist/                      生成物（Git管理対象外）
+  mechanics/
+    chapter-01/
+      core-01/
+        .gitkeep                    UNITがない空のCORE
+  waves/
+    chapter-11/
+      core-01/
+        unit-01/
+          question.md
+          answer.md
+          session.md
+          log/
+            log-01.webp
+            index.md               任意の補足文
+public/assets/                      スタイル・クーモ画像
+scripts/build.mjs                   静的ページ生成
+test/site.test.mjs                  構造・リンク・欠損データの検証
+dist/                               生成物（Git管理対象外）
 ```
 
-空のCOREは一覧データから生成します。ダミー本文や空フォルダは不要です。生成先は `dist/mechanics/chapter-01/core-01/index.html` などとなります。
+正式なカテゴリは `mechanics`（力学）と `waves`（波動）の2つです。Chapter 1〜10が力学、Chapter 11〜16が波動で、全78 COREを教材の骨組みとして常に保持します。
 
-## いつもの更新
+## UNITを追加する
 
-1. 対象のCOREのフォルダを `content/` 内に作ります。例：`content/mechanics/chapter-01/core-02/`。熱力学の例：`content/thermodynamics/chapter-19/core-33/`。
-2. `question.md`、`session.md`、`log/log-01.webp` を置きます。一部だけでも公開できます。
-3. ノートが複数あれば `log-02.webp`、`log-03.webp` と追加します。番号順にすべて表示されます。PNG・JPEGも対応しています。
-4. 気づきなどの文章を載せる場合は、任意で `log/index.md` を作ります。LOG内に表示します。
-5. ローカルで確認し、変更をコミットして `main` にpushします。GitHub Actionsがビルド・検証・公開します。
+1. 対象COREの `.gitkeep` を削除します。
+2. `unit-01/` を作り、`question.md`、`answer.md`、`session.md`、`log/` を置きます。
+3. 同じCOREで次の問題を公開するときは `unit-02/`、`unit-03/` と増やします。固定上限はありません。
+4. LOG画像は各UNITの `log/` に `log-01.webp`、`log-02.png` のように置きます。JPEGにも対応しています。
+5. `npm run build` と `npm test` で確認します。
 
-数式は `$v=2$`、別行は `$$` で囲みます。数式の記法が不正なときはビルドを失敗させ、誤った表示の公開を防ぎます。Markdown内のHTMLは許可していません。画像は基本的に上記のLOGフォルダに置いてください。
+UNITは番号を数値として並べるため、`unit-09`、`unit-10`、`unit-11` も正しい順序になります。作業途中でファイルが不足していてもビルドは失敗せず、UNITページでは欠けているセクションを「準備中」と表示します。公開順は常に QUESTION → ANSWER → LOG → SESSION です。
 
-問題・解説・1枚以上のLOGが揃うと「完了」、一部があれば「学習中」、なければ「未学習」です。進捗は自動計算します。CURRENTは最初の「学習中」、なければ体系順で最後の「完了」、すべて未学習ならCORE 01を表示します。日付順は使用しません。
-
-添付されたCORE 01のデータは上記サンプルフォルダに配置済みです。掲載内容はQUESTION → LOG → SESSIONの順です。
+数式はインラインを `$v=2$`、別行を `$$` で囲みます。不正な数式はビルドを失敗させ、誤表示の公開を防ぎます。Markdown内のHTMLは許可していません。
 
 ## ローカル確認
 
@@ -48,20 +52,8 @@ npm test
 npm run preview
 ```
 
-`http://127.0.0.1:4173` を開きます。更新後は再度 `npm run build` し、ブラウザを再読み込みします。
+プレビューは `http://127.0.0.1:4173` です。`main` へのpush後はGitHub Actionsが同じビルドとテストを実行し、GitHub Pagesへ公開します。
 
-## GitHub Pagesで初めて公開する
+## 目次を変更する
 
-1. GitHubのリポジトリで **Settings → Pages → Build and deployment → Source** を **GitHub Actions** にします。
-2. この変更一式を `main` ブランチにpushします。
-3. **Actions → Deploy GitHub Pages** が成功したら、Pages設定に表示されるURLを開きます。
-
-既定ブランチが `main` 以外の場合は、ワークフローの `branches` を合わせてください。すべて相対リンクなので、`https://ユーザー名.github.io/physics-study-log/` のようなサブパスでも機能します。ドメインやリポジトリ名のハードコードはありません。
-
-## 棚を増やす場合
-
-現在の43 COREの本文更新には一覧編集は不要です。新しいChapterやCOREを増やすときは `data/curriculum.mjs` に登録します。既存項目の途中への挿入は採番・URLを変えるため、既存項目の順序を維持してください。
-
-将来のPRACTICE・ADVANCEDはChapter配下の `practice-01/`・`advanced-01/` のような別のレイヤーとして追加できます。現在の `core-01/` のURLと本文ファイル形式は維持できます。現時点ではこれらのレイヤーの本文生成は実装していません。
-
-このリポジトリの外のサイトやファイルは変更しません。デザイン見本自体はサイトの背景として使っていません。
+Chapter名・CORE名・URLの対応は `data/curriculum.mjs` で管理します。フォルダ名は `chapter-01/core-01` のような安定した機械名、画面上の名称は「1-1 変位、速度、加速度とは？」のような教材テーマ名として分離しています。目次を変更した場合は、設定と `content/` の骨組みを必ず同時に更新してください。
