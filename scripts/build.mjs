@@ -88,15 +88,17 @@ async function build() {
   await fs.copyFile(path.join(root, 'node_modules/katex/dist/katex.min.css'), path.join(out, 'assets/katex/katex.min.css'));
   await fs.cp(path.join(root, 'node_modules/katex/dist/fonts'), path.join(out, 'assets/katex/fonts'), { recursive: true });
   for (const core of cores) core.content = await readContent(path.join(root, 'content', core.url));
-  function layout(url, title, body) {
+  function layout(url, title, body, social = null) {
     const base = '../'.repeat(url.split('/').filter(Boolean).length) || './';
     const rendered = body.replaceAll('href="@/', `href="${base}`).replaceAll('src="@/', `src="${base}`);
-    return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}｜クーモと学ぶ</title><meta name="description" content="64歳主婦・物理未選択からの学習記録。クーモと一緒に、高校物理を体系順に学びます。"><script async src="https://www.googletagmanager.com/gtag/js?id=G-JQXS3747F9"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-JQXS3747F9');</script><link rel="icon" href="${base}assets/cloud.svg" type="image/svg+xml"><link rel="stylesheet" href="${base}assets/style.css"><link rel="stylesheet" href="${base}assets/katex/katex.min.css"></head><body id="top"><a class="skip" href="#main">本文へ</a><header><a class="brand" href="https://sakurak02.github.io/some-clouds/">${cloud}<span>some clouds<small>学びながら、世界を少しずつ。</small></span></a>${url === '' ? '' : `<nav aria-label="メイン"><a href="${base}">物理学習ログ</a><a href="${base}mechanics/">力学</a><a href="${base}thermodynamics/">熱力学</a></nav>`}</header><main id="main">${rendered}</main><footer><span>© some clouds</span><a href="#top">↑ Top</a></footer></body></html>`;
+    const documentTitle = `${title}｜クーモと学ぶ`;
+    const socialMeta = social ? `<meta property="og:title" content="${esc(documentTitle)}"><meta property="og:description" content="${esc(social.description)}"><meta property="og:type" content="article"><meta property="og:url" content="${siteUrl}${url}">${social.image ? `<meta property="og:image" content="${social.image}">` : ''}<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(documentTitle)}"><meta name="twitter:description" content="${esc(social.description)}">${social.image ? `<meta name="twitter:image" content="${social.image}">` : ''}` : '';
+    return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(documentTitle)}</title><meta name="description" content="64歳主婦・物理未選択からの学習記録。クーモと一緒に、高校物理を体系順に学びます。">${socialMeta}<script async src="https://www.googletagmanager.com/gtag/js?id=G-JQXS3747F9"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-JQXS3747F9');</script><link rel="icon" href="${base}assets/cloud.svg" type="image/svg+xml"><link rel="stylesheet" href="${base}assets/style.css"><link rel="stylesheet" href="${base}assets/katex/katex.min.css"></head><body id="top"><a class="skip" href="#main">本文へ</a><header><a class="brand" href="https://sakurak02.github.io/some-clouds/">${cloud}<span>some clouds<small>学びながら、世界を少しずつ。</small></span></a>${url === '' ? '' : `<nav aria-label="メイン"><a href="${base}">物理学習ログ</a><a href="${base}mechanics/">力学</a><a href="${base}thermodynamics/">熱力学</a></nav>`}</header><main id="main">${rendered}</main><footer><span>© some clouds</span><a href="#top">↑ Top</a></footer></body></html>`;
   }
-  async function page(url, title, body) {
+  async function page(url, title, body, social = null) {
     const directory = path.join(out, url);
     await fs.mkdir(directory, { recursive: true });
-    await fs.writeFile(path.join(directory, 'index.html'), layout(url, title, body));
+    await fs.writeFile(path.join(directory, 'index.html'), layout(url, title, body, social));
   }
   const crumb = parts => `<nav class="breadcrumbs" aria-label="パンくず"><a href="@/">物理学習ログ</a>${parts.map(([name, url]) => ` <span>/</span> ${url ? `<a href="@/${url}">${esc(name)}</a>` : `<span aria-current="page">${esc(name)}</span>`}`).join('')}</nav>`;
   const progress = field => { const list = cores.filter(c => c.chapter.field.slug === field.slug); return list.length ? `${list.filter(c => c.content.status === '完了').length} / ${list.length}` : '未学習'; };
@@ -116,7 +118,9 @@ async function build() {
     const dest = path.join(out, core.url, 'log');
     await fs.mkdir(dest, { recursive: true });
     for (const image of content.images) await fs.copyFile(path.join(root, 'content', core.url, 'log', image), path.join(dest, image));
-    await page(core.url, `CORE ${pad(core.number)}｜${core.name}`, `${crumb([[chapter.field.name, chapter.field.slug + '/'], ['Chapter ' + chapter.number, chapter.url], ['CORE ' + pad(core.number)]])}<div class="page-heading"><p class="eyebrow">Chapter ${chapter.number}｜${chapter.name}</p><h1><small>CORE ${pad(core.number)}</small>${core.name}</h1>${status(core)}</div>${renderCoreArticle(core, content)}<nav class="next-prev" aria-label="前後のCORE">${i > 0 ? `<a href="@/${cores[i - 1].url}">← CORE ${pad(cores[i - 1].number)}<br>${cores[i - 1].name}</a>` : '<span></span>'}${i < cores.length - 1 ? `<a href="@/${cores[i + 1].url}">CORE ${pad(cores[i + 1].number)} →<br>${cores[i + 1].name}</a>` : ''}</nav>`);
+    const image = content.images.includes('log-01.webp') ? `${siteUrl}${core.url}log/log-01.webp` : '';
+    const description = `CORE ${pad(core.number)}「${core.name}」— 64歳主婦・物理未選択からの物理学習記録。`;
+    await page(core.url, `CORE ${pad(core.number)}｜${core.name}`, `${crumb([[chapter.field.name, chapter.field.slug + '/'], ['Chapter ' + chapter.number, chapter.url], ['CORE ' + pad(core.number)]])}<div class="page-heading"><p class="eyebrow">Chapter ${chapter.number}｜${chapter.name}</p><h1><small>CORE ${pad(core.number)}</small>${core.name}</h1>${status(core)}</div>${renderCoreArticle(core, content)}<nav class="next-prev" aria-label="前後のCORE">${i > 0 ? `<a href="@/${cores[i - 1].url}">← CORE ${pad(cores[i - 1].number)}<br>${cores[i - 1].name}</a>` : '<span></span>'}${i < cores.length - 1 ? `<a href="@/${cores[i + 1].url}">CORE ${pad(cores[i + 1].number)} →<br>${cores[i + 1].name}</a>` : ''}</nav>`, { description, image });
   }
   const sitemapPaths = [
     '',

@@ -26,6 +26,27 @@ test('sample math, image, and progress are rendered', async () => {
   assert.doesNotMatch(html, /\$\$|katex-error/);
   assert.match(await fs.readFile(path.join(out, 'index.html'), 'utf8'), /1 \/ 32/);
 });
+test('every CORE social card uses an absolute LOG image URL only when log-01.webp exists', async () => {
+  for (const core of chapters.flatMap(chapter => chapter.cores)) {
+    const html = await fs.readFile(path.join(out, core.url, 'index.html'), 'utf8');
+    assert.match(html, /<meta property="og:title" content="[^"]+">/);
+    assert.match(html, /<meta property="og:description" content="[^"]+">/);
+    assert.match(html, /<meta property="og:type" content="article">/);
+    assert.ok(html.includes(`<meta property="og:url" content="https://sakurak02.github.io/physics-study-log/${core.url}">`));
+    assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
+    assert.match(html, /<meta name="twitter:title" content="[^"]+">/);
+    assert.match(html, /<meta name="twitter:description" content="[^"]+">/);
+
+    const imageUrl = `https://sakurak02.github.io/physics-study-log/${core.url}log/log-01.webp`;
+    const hasImage = await fs.access(path.join(out, core.url, 'log', 'log-01.webp')).then(() => true, () => false);
+    if (hasImage) {
+      assert.ok(html.includes(`<meta property="og:image" content="${imageUrl}">`));
+      assert.ok(html.includes(`<meta name="twitter:image" content="${imageUrl}">`));
+    } else {
+      assert.doesNotMatch(html, /property="og:image"|name="twitter:image"/);
+    }
+  }
+});
 test('optional ANSWER is collapsed, rendered with math, and placed before LOG and SESSION', async () => {
   const content = {
     question: '# Question',
