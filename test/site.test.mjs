@@ -31,9 +31,26 @@ test('every CORE exists as an empty skeleton containing only .gitkeep', async ()
 test('empty CORE shelves build without being mistaken for UNIT content', async () => {
   for (const core of cores) {
     const html = await fs.readFile(path.join(out, core.url, 'index.html'), 'utf8');
-    assert.match(html, /公開用の問題はまだありません。/);
+    if (core.publicProblems === 'none') {
+      assert.match(html, /<span class="status complete">学習済み<\/span>/);
+      assert.match(html, /<span class="problem-status">公開用オリジナル問題なし<\/span>/);
+      assert.doesNotMatch(html, /公開用の問題はまだありません。/);
+    } else {
+      assert.match(html, /公開用の問題はまだありません。/);
+    }
     assert.doesNotMatch(html, /id="question"|QUESTION<\/span>|UNIT 01/);
   }
+});
+
+test('CORE completion and public-problem policy remain distinct', async () => {
+  const firstCore = chapters[0].cores[0];
+  assert.equal(firstCore.learningStatus, '学習済み');
+  assert.equal(firstCore.publicProblems, 'none');
+
+  const mechanics = await fs.readFile(path.join(out, 'mechanics', 'index.html'), 'utf8');
+  assert.match(mechanics, /1 \/ 43 CORE/);
+  assert.match(mechanics, /学習済み/);
+  assert.doesNotMatch(mechanics, /公開用オリジナル問題なし/);
 });
 
 test('UNIT discovery ignores .gitkeep and uses numeric natural order', async () => {

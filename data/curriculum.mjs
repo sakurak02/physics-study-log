@@ -6,7 +6,14 @@ export const fields = [
 ];
 
 const curriculum = [
-  ['mechanics', 1, '変位と速度と加速度', ['1-1 変位、速度、加速度とは？', '1-2 v-tグラフ', '1-3 等加速度運動', '1-4 落体運動', '1-5 放物運動', '1-6 相対運動']],
+  ['mechanics', 1, '変位と速度と加速度', [
+    { name: '1-1 変位、速度、加速度とは？', learningStatus: '学習済み', publicProblems: 'none' },
+    '1-2 v-tグラフ',
+    '1-3 等加速度運動',
+    '1-4 落体運動',
+    '1-5 放物運動',
+    '1-6 相対運動'
+  ]],
   ['mechanics', 2, '力のつり合い', ['2-1 力とは？', '2-2 力のつり合い', '2-3 作用・反作用の法則', '2-4 力の分解', '2-5 弾性力', '2-6 圧力', '2-7 浮力', '2-8 垂直抗力と摩擦力']],
   ['mechanics', 3, '力のモーメント', ['3-1 力のモーメントとは？', '3-2 力のモーメントの求め方', '3-3 剛体のつり合い', '3-4 重心']],
   ['mechanics', 4, '運動方程式', ['4-1 運動方程式とは？', '4-2 運動方程式の立て方', '4-3 物体の一体化', '4-4 道具を使うときのルール']],
@@ -32,9 +39,10 @@ export const chapters = curriculum.map(([fieldSlug, number, name, coreNames]) =>
     number,
     field,
     url,
-    cores: coreNames.map((coreName, index) => {
+    cores: coreNames.map((coreDefinition, index) => {
       const coreNumber = index + 1;
-      return { name: coreName, number: coreNumber, url: `${url}core-${pad(coreNumber)}/` };
+      const metadata = typeof coreDefinition === 'string' ? { name: coreDefinition } : coreDefinition;
+      return { ...metadata, number: coreNumber, url: `${url}core-${pad(coreNumber)}/` };
     })
   };
 });

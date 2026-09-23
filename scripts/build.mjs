@@ -109,8 +109,10 @@ export async function readUnit(directory) {
 
 const cores = chapters.flatMap(chapter => chapter.cores.map(core => ({ ...core, chapter, units: [] })));
 const cloud = '<svg viewBox="0 0 64 44" fill="none" aria-hidden="true"><path d="M17 36C1 37 2 15 17 16C16 0 43 0 45 16C62 12 67 36 49 36Z" stroke="currentColor" stroke-width="3"/></svg>';
-const statusMarkup = value => `<span class="status ${value === '完了' ? 'complete' : ''}">${value}</span>`;
-const coreStatus = core => core.units.length === 0 ? '未学習' : core.units.every(unit => unit.content.status === '完了') ? '完了' : '学習中';
+const statusMarkup = value => `<span class="status ${['完了', '学習済み'].includes(value) ? 'complete' : ''}">${value}</span>`;
+const coreStatus = core => core.learningStatus || (core.units.length === 0 ? '未学習' : core.units.every(unit => unit.content.status === '完了') ? '完了' : '学習中');
+const coreStatusMarkup = core => `<span class="core-statuses">${statusMarkup(coreStatus(core))}${core.publicProblems === 'none' ? '<span class="problem-status">公開用オリジナル問題なし</span>' : ''}</span>`;
+const isCoreComplete = core => ['完了', '学習済み'].includes(coreStatus(core));
 
 export function renderUnitArticle(core, unit, content) {
   const empty = '<p class="empty">準備中 — 記録はこれから。</p>';
@@ -153,7 +155,7 @@ async function build() {
   const crumb = parts => `<nav class="breadcrumbs" aria-label="パンくず"><a href="@/">物理学習ログ</a>${parts.map(([name, url]) => ` <span>/</span> ${url ? `<a href="@/${url}">${esc(name)}</a>` : `<span aria-current="page">${esc(name)}</span>`}`).join('')}</nav>`;
   const progress = field => {
     const list = cores.filter(core => core.chapter.field.slug === field.slug);
-    return `${list.filter(core => coreStatus(core) === '完了').length} / ${list.length}`;
+    return `${list.filter(isCoreComplete).length} / ${list.length}`;
   };
   const allUnits = cores.flatMap(core => core.units.map(unit => ({ ...unit, core })));
   const currentUnit = allUnits.find(unit => unit.content.status === '学習中') || [...allUnits].reverse().find(unit => unit.content.status === '完了');
@@ -181,7 +183,8 @@ async function build() {
 
   for (const [index, core] of cores.entries()) {
     const chapter = core.chapter;
-    await page(core.url, core.name, `${crumb([[chapter.field.name, `${chapter.field.slug}/`], [`Chapter ${chapter.number}`, chapter.url], [core.name]])}<div class="page-heading"><p class="eyebrow">Chapter ${chapter.number}｜${chapter.name}</p><h1><small>CORE ${pad(core.number)}</small>${esc(core.name)}</h1>${statusMarkup(coreStatus(core))}</div><section class="chapter-block"><h2>公開用オリジナル問題</h2>${unitRows(core)}</section><nav class="next-prev" aria-label="前後のCORE">${index > 0 ? `<a href="@/${cores[index - 1].url}">← ${esc(cores[index - 1].name)}</a>` : '<span></span>'}${index < cores.length - 1 ? `<a href="@/${cores[index + 1].url}">${esc(cores[index + 1].name)} →</a>` : ''}</nav>`);
+    const problemSection = core.publicProblems === 'none' ? '' : `<section class="chapter-block"><h2>公開用オリジナル問題</h2>${unitRows(core)}</section>`;
+    await page(core.url, core.name, `${crumb([[chapter.field.name, `${chapter.field.slug}/`], [`Chapter ${chapter.number}`, chapter.url], [core.name]])}<div class="page-heading"><p class="eyebrow">Chapter ${chapter.number}｜${chapter.name}</p><h1><small>CORE ${pad(core.number)}</small>${esc(core.name)}</h1>${coreStatusMarkup(core)}</div>${problemSection}<nav class="next-prev" aria-label="前後のCORE">${index > 0 ? `<a href="@/${cores[index - 1].url}">← ${esc(cores[index - 1].name)}</a>` : '<span></span>'}${index < cores.length - 1 ? `<a href="@/${cores[index + 1].url}">${esc(cores[index + 1].name)} →</a>` : ''}</nav>`);
 
     for (const [unitIndex, unit] of core.units.entries()) {
       const destination = path.join(out, unit.url, 'log');
