@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { fields, chapters } from '../data/curriculum.mjs';
-import { discoverUnits, readUnit, renderUnitArticle } from '../scripts/build.mjs';
+import { coreStatus, discoverUnits, readUnit, renderUnitArticle } from '../scripts/build.mjs';
 
 const out = path.resolve('dist');
 const contentRoot = path.resolve('content');
@@ -46,13 +46,24 @@ test('empty CORE shelves build without being mistaken for UNIT content', async (
 
 test('CORE completion and public-problem policy remain distinct', async () => {
   const firstCore = chapters[0].cores[0];
-  assert.equal(firstCore.learningStatus, '学習済み');
+  assert.equal(firstCore.completed, true);
   assert.equal(firstCore.publicProblems, 'none');
 
   const mechanics = await fs.readFile(path.join(out, 'mechanics', 'index.html'), 'utf8');
-  assert.match(mechanics, /<span class="progress">\d+ \/ 43 CORE 完了<\/span>/);
-  assert.match(mechanics, /学習済み/);
+  assert.match(mechanics, /<span class="progress">1 \/ 43 CORE 学習済み<\/span>/);
+  assert.match(mechanics, /CORE 01<\/span><span>1-1 変位、速度、加速度とは？<\/span><span class="status complete">学習済み<\/span>/);
+  assert.match(mechanics, /CORE 02<\/span><span>1-2 v-tグラフ<\/span><span class="status ">学習中<\/span>/);
+  assert.match(mechanics, /CORE 03<\/span><span>1-3 等加速度運動<\/span><span class="status ">未学習<\/span>/);
   assert.doesNotMatch(mechanics, /公開用オリジナル問題なし/);
+});
+
+test('CORE progress uses explicit completion before UNIT presence', () => {
+  assert.equal(coreStatus({ completed: true, units: [] }), '学習済み');
+  assert.equal(coreStatus({ completed: true, units: [{}] }), '学習済み');
+  assert.equal(coreStatus({ completed: false, units: [{}] }), '学習中');
+  assert.equal(coreStatus({ units: [{}] }), '学習中');
+  assert.equal(coreStatus({ completed: false, units: [] }), '未学習');
+  assert.equal(coreStatus({ units: [] }), '未学習');
 });
 
 test('UNIT discovery ignores .gitkeep and uses numeric natural order', async () => {
@@ -96,7 +107,7 @@ test('partial UNIT data is safe and only WebP LOG images are naturally ordered',
     await fs.writeFile(path.join(temporary, 'answer.md'), '$E=mc^2$');
     await fs.writeFile(path.join(temporary, 'session.md'), '# Session');
     content = await readUnit(temporary);
-    assert.equal(content.status, '完了');
+    assert.equal(content.status, '学習済み');
     assert.deepEqual(content.images, ['log-01.webp', 'log-02.webp', 'log-10.webp']);
   } finally {
     assert.equal(path.dirname(temporary), path.resolve(os.tmpdir()));

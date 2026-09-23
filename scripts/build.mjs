@@ -103,16 +103,16 @@ export async function readUnit(directory) {
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
-  const status = question && answer && session ? '完了' : '学習中';
+  const status = question && answer && session ? '学習済み' : '学習中';
   return { question, answer, session, notes, images, status };
 }
 
 const cores = chapters.flatMap(chapter => chapter.cores.map(core => ({ ...core, chapter, units: [] })));
 const cloud = '<svg viewBox="0 0 64 44" fill="none" aria-hidden="true"><path d="M17 36C1 37 2 15 17 16C16 0 43 0 45 16C62 12 67 36 49 36Z" stroke="currentColor" stroke-width="3"/></svg>';
-const statusMarkup = value => `<span class="status ${['完了', '学習済み'].includes(value) ? 'complete' : ''}">${value}</span>`;
-const coreStatus = core => core.learningStatus || (core.units.length === 0 ? '未学習' : core.units.every(unit => unit.content.status === '完了') ? '完了' : '学習中');
+const statusMarkup = value => `<span class="status ${value === '学習済み' ? 'complete' : ''}">${value}</span>`;
+export const coreStatus = core => core.completed === true ? '学習済み' : core.units.length > 0 ? '学習中' : '未学習';
 const coreStatusMarkup = core => `<span class="core-statuses">${statusMarkup(coreStatus(core))}${core.publicProblems === 'none' ? '<span class="problem-status">公開用オリジナル問題なし</span>' : ''}</span>`;
-const isCoreComplete = core => ['完了', '学習済み'].includes(coreStatus(core));
+const isCoreComplete = core => core.completed === true;
 
 export function renderUnitArticle(core, unit, content) {
   const empty = '<p class="empty">準備中 — 記録はこれから。</p>';
@@ -158,7 +158,7 @@ async function build() {
     return `${list.filter(isCoreComplete).length} / ${list.length}`;
   };
   const allUnits = cores.flatMap(core => core.units.map(unit => ({ ...unit, core })));
-  const currentUnit = allUnits.find(unit => unit.content.status === '学習中') || [...allUnits].reverse().find(unit => unit.content.status === '完了');
+  const currentUnit = allUnits.find(unit => unit.content.status === '学習中') || [...allUnits].reverse().find(unit => unit.content.status === '学習済み');
   const firstCore = cores[0];
   const currentUrl = currentUnit?.url || firstCore.url;
   const currentText = currentUnit
@@ -174,7 +174,7 @@ async function build() {
 
   for (const field of fields) {
     const list = chapters.filter(chapter => chapter.field.slug === field.slug);
-    await page(`${field.slug}/`, field.name, `${crumb([[field.name]])}<div class="page-heading"><p class="eyebrow">${field.en}</p><h1>${field.name}</h1><p>${field.description}</p><span class="progress">${progress(field)} CORE 完了</span></div>${list.map(chapter => `<section class="chapter-block"><h2><a href="@/${chapter.url}"><small>Chapter ${chapter.number}</small>${chapter.name}<span aria-hidden="true">→</span></a></h2>${coreRows(cores.filter(core => core.chapter.number === chapter.number))}</section>`).join('')}`);
+    await page(`${field.slug}/`, field.name, `${crumb([[field.name]])}<div class="page-heading"><p class="eyebrow">${field.en}</p><h1>${field.name}</h1><p>${field.description}</p><span class="progress">${progress(field)} CORE 学習済み</span></div>${list.map(chapter => `<section class="chapter-block"><h2><a href="@/${chapter.url}"><small>Chapter ${chapter.number}</small>${chapter.name}<span aria-hidden="true">→</span></a></h2>${coreRows(cores.filter(core => core.chapter.number === chapter.number))}</section>`).join('')}`);
   }
 
   for (const chapter of chapters) {
