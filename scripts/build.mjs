@@ -98,7 +98,7 @@ export async function readUnit(directory) {
   let images = [];
   try {
     images = (await fs.readdir(path.join(directory, 'log')))
-      .filter(file => /^log-\d+\.(webp|png|jpe?g)$/i.test(file))
+      .filter(file => /^log-\d+\.webp$/i.test(file))
       .sort((left, right) => Number(left.match(/\d+/)[0]) - Number(right.match(/\d+/)[0]));
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;

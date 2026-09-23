@@ -21,15 +21,17 @@ test('curriculum contains exactly the new 2 categories, 16 chapters, and 78 CORE
   assert.equal(chapters.at(-1).cores.at(-1).name, '16-8 くさび形の干渉');
 });
 
-test('every CORE exists as an empty skeleton containing only .gitkeep', async () => {
+test('every CORE directory exists', async () => {
   for (const core of cores) {
-    const files = await fs.readdir(path.join(contentRoot, core.url));
-    assert.deepEqual(files, ['.gitkeep'], core.url);
+    const stats = await fs.stat(path.join(contentRoot, core.url));
+    assert.equal(stats.isDirectory(), true, core.url);
   }
 });
 
 test('empty CORE shelves build without being mistaken for UNIT content', async () => {
   for (const core of cores) {
+    const units = await discoverUnits(path.join(contentRoot, core.url), core.url);
+    if (units.length > 0) continue;
     const html = await fs.readFile(path.join(out, core.url, 'index.html'), 'utf8');
     if (core.publicProblems === 'none') {
       assert.match(html, /<span class="status complete">学習済み<\/span>/);
@@ -48,7 +50,7 @@ test('CORE completion and public-problem policy remain distinct', async () => {
   assert.equal(firstCore.publicProblems, 'none');
 
   const mechanics = await fs.readFile(path.join(out, 'mechanics', 'index.html'), 'utf8');
-  assert.match(mechanics, /1 \/ 43 CORE/);
+  assert.match(mechanics, /<span class="progress">\d+ \/ 43 CORE 完了<\/span>/);
   assert.match(mechanics, /学習済み/);
   assert.doesNotMatch(mechanics, /公開用オリジナル問題なし/);
 });
@@ -69,7 +71,7 @@ test('UNIT discovery ignores .gitkeep and uses numeric natural order', async () 
   }
 });
 
-test('partial UNIT data is safe and LOG images are naturally ordered', async () => {
+test('partial UNIT data is safe and only WebP LOG images are naturally ordered', async () => {
   const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'physics-unit-'));
   try {
     await fs.writeFile(path.join(temporary, 'question.md'), '# Question');
@@ -79,7 +81,16 @@ test('partial UNIT data is safe and LOG images are naturally ordered', async () 
     assert.deepEqual(content.images, []);
 
     await fs.mkdir(path.join(temporary, 'log'));
-    for (const name of ['log-10.webp', 'log-02.webp', 'log-01.webp', '.gitkeep', 'other.webp']) {
+    for (const name of [
+      'log-10.webp',
+      'log-02.webp',
+      'log-01.webp',
+      'log-03.png',
+      'log-04.jpg',
+      'log-05.jpeg',
+      '.gitkeep',
+      'other.webp'
+    ]) {
       await fs.writeFile(path.join(temporary, 'log', name), '');
     }
     await fs.writeFile(path.join(temporary, 'answer.md'), '$E=mc^2$');
@@ -141,7 +152,9 @@ test('every internal link and asset resolves at root and under a Pages prefix', 
 
 test('shared design hooks, analytics, and brand remain on every generated page', async () => {
   const htmlFiles = (await fs.readdir(out, { recursive: true })).filter(file => file.endsWith('.html'));
-  assert.equal(htmlFiles.length, 97);
+  const unitCount = (await Promise.all(cores.map(core => discoverUnits(path.join(contentRoot, core.url), core.url))))
+    .reduce((total, units) => total + units.length, 0);
+  assert.equal(htmlFiles.length, 97 + unitCount);
   for (const file of htmlFiles) {
     const html = await fs.readFile(path.join(out, file), 'utf8');
     assert.equal((html.match(/googletagmanager\.com\/gtag\/js\?id=G-JQXS3747F9/g) || []).length, 1, file);
@@ -152,17 +165,20 @@ test('shared design hooks, analytics, and brand remain on every generated page',
   assert.match(css, /@media\(max-width:680px\)/);
 });
 
-test('sitemap contains only the new public hierarchy and no UNIT before one exists', async () => {
+test('sitemap contains the public hierarchy and discovered UNIT pages', async () => {
   const sitemap = await fs.readFile(path.join(out, 'sitemap.xml'), 'utf8');
   const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
+  const unitUrls = (await Promise.all(cores.map(core => discoverUnits(path.join(contentRoot, core.url), core.url))))
+    .flat()
+    .map(unit => unit.url);
   const expected = [
     'https://sakurak02.github.io/physics-study-log/',
     ...fields.map(field => `https://sakurak02.github.io/physics-study-log/${field.slug}/`),
     ...chapters.map(chapter => `https://sakurak02.github.io/physics-study-log/${chapter.url}`),
-    ...cores.map(core => `https://sakurak02.github.io/physics-study-log/${core.url}`)
+    ...cores.map(core => `https://sakurak02.github.io/physics-study-log/${core.url}`),
+    ...unitUrls.map(url => `https://sakurak02.github.io/physics-study-log/${url}`)
   ];
   assert.deepEqual(locations, expected);
   assert.equal(new Set(locations).size, expected.length);
-  assert.doesNotMatch(sitemap, /unit-\d+/);
   assert.doesNotMatch(sitemap, /thermodynamics|atomic|electromagnetism/);
 });

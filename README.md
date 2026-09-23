@@ -34,7 +34,7 @@ dist/                               生成物（Git管理対象外）
 1. 対象COREの `.gitkeep` を削除します。
 2. `unit-01/` を作り、`question.md`、`answer.md`、`session.md`、`log/` を置きます。
 3. 同じCOREで次の問題を公開するときは `unit-02/`、`unit-03/` と増やします。固定上限はありません。
-4. LOG画像は各UNITの `log/` に `log-01.webp`、`log-02.png` のように置きます。JPEGにも対応しています。
+4. LOG画像はあらかじめWebPへ変換し、各UNITの `log/` に `log-01.webp`、`log-02.webp` のように置きます。PNG・JPG・JPEGは読み込みません。
 5. `npm run build` と `npm test` で確認します。
 
 UNITは番号を数値として並べるため、`unit-09`、`unit-10`、`unit-11` も正しい順序になります。作業途中でファイルが不足していてもビルドは失敗せず、UNITページでは欠けているセクションを「準備中」と表示します。公開順は常に QUESTION → ANSWER → LOG → SESSION です。
