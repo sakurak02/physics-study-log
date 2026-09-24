@@ -58,3 +58,6 @@ header nav [aria-current]{border-bottom-color:#999}
 .problem-status{padding-left:12px;border-left:1px solid var(--line);font-size:11px;color:var(--muted);white-space:nowrap}
 .page-heading+.next-prev{margin-top:36px}
 @media(max-width:680px){.problem-status{font-size:10px}}
+
+/* Only the current-location text is interactive; the label and Kumo are informational. */
+.current-content{display:block;flex:1;min-width:0}

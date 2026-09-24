@@ -138,6 +138,13 @@ test('top page and navigation expose only mechanics and waves', async () => {
   assert.match(home, /href="\.\/mechanics\/"/);
   assert.match(home, /href="\.\/waves\/"/);
   assert.doesNotMatch(home, /thermodynamics|atomic|electromagnetism|5つの学習分野/);
+
+  const current = home.match(/<section class="current" aria-label="現在地">.*?<\/section>/)?.[0];
+  assert.ok(current);
+  assert.equal((current.match(/<a /g) || []).length, 1);
+  assert.match(current, /^<section[^>]*><div class="current-label">CURRENT<small>現在地<\/small><\/div><img [^>]+><a class="current-content" href="[^"]+">Chapter [^<]+<br>[^<]+<br>UNIT \d+<\/a><\/section>$/);
+  assert.doesNotMatch(current, /つづきから学ぶ|class="continue"/);
+
   const mechanics = await fs.readFile(path.join(out, 'mechanics', 'index.html'), 'utf8');
   assert.match(mechanics, /<nav aria-label="メイン">/);
   assert.match(mechanics, />波動<\/a>/);
