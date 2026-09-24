@@ -8,7 +8,7 @@ export const fields = [
 const curriculum = [
   ['mechanics', 1, '変位と速度と加速度', [
     { name: '1-1 変位、速度、加速度とは？', completed: true, publicProblems: 'none' },
-    '1-2 v-tグラフ',
+    { name: '1-2 v-tグラフ', completed: true },
     '1-3 等加速度運動',
     '1-4 落体運動',
     '1-5 放物運動',

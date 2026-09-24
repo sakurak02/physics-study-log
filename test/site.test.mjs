@@ -50,9 +50,9 @@ test('CORE completion and public-problem policy remain distinct', async () => {
   assert.equal(firstCore.publicProblems, 'none');
 
   const mechanics = await fs.readFile(path.join(out, 'mechanics', 'index.html'), 'utf8');
-  assert.match(mechanics, /<span class="progress">1 \/ 43 CORE 学習済み<\/span>/);
+  assert.match(mechanics, /<span class="progress">2 \/ 43 CORE 学習済み<\/span>/);
   assert.match(mechanics, /CORE 01<\/span><span>1-1 変位、速度、加速度とは？<\/span><span class="status complete">学習済み<\/span>/);
-  assert.match(mechanics, /CORE 02<\/span><span>1-2 v-tグラフ<\/span><span class="status ">学習中<\/span>/);
+  assert.match(mechanics, /CORE 02<\/span><span>1-2 v-tグラフ<\/span><span class="status complete">学習済み<\/span>/);
   assert.match(mechanics, /CORE 03<\/span><span>1-3 等加速度運動<\/span><span class="status ">未学習<\/span>/);
   assert.doesNotMatch(mechanics, /公開用オリジナル問題なし/);
 });
